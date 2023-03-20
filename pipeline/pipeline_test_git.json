@@ -60,7 +60,10 @@
 				"outputs": [
 					{
 						"referenceName": "DS_BLOB_CSV_NO_FILE_NAME",
-						"type": "DatasetReference"
+						"type": "DatasetReference",
+						"parameters": {
+							"containername": "output"
+						}
 					}
 				]
 			}
