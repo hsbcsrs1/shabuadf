@@ -1,0 +1,185 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "shabu-data-factory"
+		},
+		"LS_Blob_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'LS_Blob'"
+		},
+		"LS_ADLSGen2_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://shabuadlsgen2.dfs.core.windows.net"
+		},
+		"LS_Azure_SQL_DB_properties_typeProperties_connectionString_secretName": {
+			"type": "string",
+			"defaultValue": "sqlconn"
+		},
+		"LS_Azure_SQL_DW_properties_typeProperties_connectionString_secretName": {
+			"type": "string",
+			"defaultValue": "sqldwconn"
+		},
+		"LS_SQLKV_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://shabuakv.vault.azure.net/"
+		},
+		"LS_SQL_DB_properties_typeProperties_connectionString_secretName": {
+			"type": "string",
+			"defaultValue": "sqlconn"
+		},
+		"Event_Trigger_properties_typeProperties_scope": {
+			"type": "string",
+			"defaultValue": "/subscriptions/5696d5ca-0e10-487a-af93-e1150e7cdb8d/resourceGroups/shabu-azure/providers/Microsoft.Storage/storageAccounts/shabustorageacct"
+		},
+		"Trigger_Error_Log_Pipeline_properties_PL_Log_Into_Table_parameters_PL_Prm_Source_Tab_Name": {
+			"type": "string",
+			"defaultValue": "emp"
+		},
+		"Trigger_Error_Log_Pipeline_properties_PL_Log_Into_Table_parameters_PL_Sink_Tab_Name": {
+			"type": "string",
+			"defaultValue": "emp_sink"
+		},
+		"containerUri": {
+			"type": "string",
+			"metadata": "URI to storage account containing linked ARM templates"
+		},
+		"containerSasToken": {
+			"type": "string",
+			"metadata": "Sas token to storage account containing linked ARM templates"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "shabu-data-factory_ArmTemplate_0",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"LS_Blob_connectionString": {
+						"value": "[parameters('LS_Blob_connectionString')]"
+					},
+					"LS_SQLKV_properties_typeProperties_baseUrl": {
+						"value": "[parameters('LS_SQLKV_properties_typeProperties_baseUrl')]"
+					},
+					"LS_ADLSGen2_properties_typeProperties_url": {
+						"value": "[parameters('LS_ADLSGen2_properties_typeProperties_url')]"
+					},
+					"LS_Azure_SQL_DB_properties_typeProperties_connectionString_secretName": {
+						"value": "[parameters('LS_Azure_SQL_DB_properties_typeProperties_connectionString_secretName')]"
+					},
+					"LS_Azure_SQL_DW_properties_typeProperties_connectionString_secretName": {
+						"value": "[parameters('LS_Azure_SQL_DW_properties_typeProperties_connectionString_secretName')]"
+					},
+					"LS_SQL_DB_properties_typeProperties_connectionString_secretName": {
+						"value": "[parameters('LS_SQL_DB_properties_typeProperties_connectionString_secretName')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "shabu-data-factory_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'shabu-data-factory_ArmTemplate_0')]"
+			]
+		},
+		{
+			"name": "shabu-data-factory_ArmTemplate_2",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_2.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'shabu-data-factory_ArmTemplate_1')]"
+			]
+		},
+		{
+			"name": "shabu-data-factory_ArmTemplate_3",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_3.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"Event_Trigger_properties_typeProperties_scope": {
+						"value": "[parameters('Event_Trigger_properties_typeProperties_scope')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'shabu-data-factory_ArmTemplate_2')]"
+			]
+		},
+		{
+			"name": "shabu-data-factory_ArmTemplate_4",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_4.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"Trigger_Error_Log_Pipeline_properties_PL_Log_Into_Table_parameters_PL_Prm_Source_Tab_Name": {
+						"value": "[parameters('Trigger_Error_Log_Pipeline_properties_PL_Log_Into_Table_parameters_PL_Prm_Source_Tab_Name')]"
+					},
+					"Trigger_Error_Log_Pipeline_properties_PL_Log_Into_Table_parameters_PL_Sink_Tab_Name": {
+						"value": "[parameters('Trigger_Error_Log_Pipeline_properties_PL_Log_Into_Table_parameters_PL_Sink_Tab_Name')]"
+					}
+				}
+			},
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'shabu-data-factory_ArmTemplate_3')]"
+			]
+		}
+	]
+}

@@ -1,0 +1,1950 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "shabu-data-factory"
+		},
+		"Event_Trigger_properties_typeProperties_scope": {
+			"type": "string",
+			"defaultValue": "/subscriptions/5696d5ca-0e10-487a-af93-e1150e7cdb8d/resourceGroups/shabu-azure/providers/Microsoft.Storage/storageAccounts/shabustorageacct"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline_test')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"modifiedDatetimeStart": "2023-03-14T00:00:00Z",
+									"wildcardFileName": "Cust1.csv",
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"tableOption": "autoCreate",
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_BLOB_CSV_NO_FILE_NAME",
+								"type": "DatasetReference",
+								"parameters": {
+									"containername": "input"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Azure_SQL_DB",
+								"type": "DatasetReference",
+								"parameters": {
+									"SourceTableName": "cust1",
+									"SourceTableSchema": "dbo"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-03-13T19:52:26Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Event_Trigger')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "PL_S27_DATA_Event_Trigger",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "BlobEventsTrigger",
+				"typeProperties": {
+					"blobPathBeginsWith": "/input/blobs/",
+					"blobPathEndsWith": "success.csv",
+					"ignoreEmptyBlobs": true,
+					"scope": "[parameters('Event_Trigger_properties_typeProperties_scope')]",
+					"events": [
+						"Microsoft.Storage.BlobCreated"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_S48_Filter_Conditional_Split')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_S48_Cust_CSV",
+								"type": "DatasetReference"
+							},
+							"name": "custcsv"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S48_Orders_CSV",
+								"type": "DatasetReference"
+							},
+							"name": "orderscsv"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_S48_India",
+								"type": "DatasetReference"
+							},
+							"name": "sinkindia"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S48_USA",
+								"type": "DatasetReference"
+							},
+							"name": "sinkusa"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S48_Other",
+								"type": "DatasetReference"
+							},
+							"name": "sinkother"
+						}
+					],
+					"transformations": [
+						{
+							"name": "leftjoin"
+						},
+						{
+							"name": "selectrequiredcolumns"
+						},
+						{
+							"name": "filtermatchedrows"
+						},
+						{
+							"name": "conditionalsplit"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          customerid as short,",
+						"          customername as string,",
+						"          contactname as string,",
+						"          country as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     partitionBy('hash', 1)) ~> custcsv",
+						"source(output(",
+						"          customerid as integer,",
+						"          ordername as string,",
+						"          orderdate as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     partitionBy('hash', 1)) ~> orderscsv",
+						"custcsv, orderscsv join(custcsv@customerid == orderscsv@customerid,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     partitionBy('hash', 1),",
+						"     broadcast: 'auto')~> leftjoin",
+						"filtermatchedrows select(mapColumn(",
+						"          customerid = custcsv@customerid,",
+						"          customername,",
+						"          contactname,",
+						"          country",
+						"     ),",
+						"     partitionBy('hash', 1),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectrequiredcolumns",
+						"leftjoin filter(isNull(orderdate),",
+						"     partitionBy('hash', 1)) ~> filtermatchedrows",
+						"selectrequiredcolumns split(equals(country, 'india'),",
+						"     equals(country, 'usa'),",
+						"     disjoint: false,",
+						"     partitionBy('hash', 1)) ~> conditionalsplit@(india, usa, other)",
+						"conditionalsplit@india sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['data.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sinkindia",
+						"conditionalsplit@usa sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['data.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sinkusa",
+						"conditionalsplit@other sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['data.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sinkother"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_S49_RestartFromFailure')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_S49_Match1",
+								"type": "DatasetReference"
+							},
+							"name": "sourcematch1"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S49_Match2",
+								"type": "DatasetReference"
+							},
+							"name": "sourcematch2"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S49_Match3",
+								"type": "DatasetReference"
+							},
+							"name": "sourcematch3"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S49_Series",
+								"type": "DatasetReference"
+							},
+							"name": "sourceseries"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_S49_Series",
+								"type": "DatasetReference"
+							},
+							"name": "sink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "union"
+						},
+						{
+							"name": "exists"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Match as integer,",
+						"          PlayerId as integer,",
+						"          PlayerName as string,",
+						"          PlayerScore as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     partitionBy('hash', 1)) ~> sourcematch1",
+						"source(output(",
+						"          Match as integer,",
+						"          PlayerId as integer,",
+						"          PlayerName as string,",
+						"          PlayerScore as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     partitionBy('hash', 1)) ~> sourcematch2",
+						"source(output(",
+						"          Match as integer,",
+						"          PlayerId as integer,",
+						"          PlayerName as string,",
+						"          PlayerScore as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     partitionBy('hash', 1)) ~> sourcematch3",
+						"source(output(",
+						"          Match as integer,",
+						"          PlayerId as integer,",
+						"          PlayerName as string,",
+						"          PlayerScore as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     partitionBy('hash', 1)) ~> sourceseries",
+						"sourcematch1, sourcematch2, sourcematch3 union(byName: true,",
+						"     partitionBy('hash', 1))~> union",
+						"union, sourceseries exists(equals(union@Match, sourceseries@Match) && equals(union@PlayerId, sourceseries@PlayerId) && equals(union@PlayerName, sourceseries@PlayerName) && equals(union@PlayerScore, sourceseries@PlayerScore),",
+						"     negate:true,",
+						"     broadcast: 'left')~> exists",
+						"exists sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          Match as string,",
+						"          PlayerId as string,",
+						"          PlayerName as string,",
+						"          PlayerScore as string",
+						"     ),",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_S50_Remove_Duplicates')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_S50_ASDB_Soruce_CreditScore",
+								"type": "DatasetReference"
+							},
+							"name": "sourceCreditScore"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_S50_ASDB_Sink_Toppers",
+								"type": "DatasetReference"
+							},
+							"name": "sinkToppers"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S50_ASDB_Sink_AllCust",
+								"type": "DatasetReference"
+							},
+							"name": "sinkAllCust"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S50_ASDB_Sink_RejectRecords",
+								"type": "DatasetReference"
+							},
+							"name": "sinkRejectRecords"
+						}
+					],
+					"transformations": [
+						{
+							"name": "window"
+						},
+						{
+							"name": "RejectRecords"
+						},
+						{
+							"name": "selectRequiredColumns"
+						},
+						{
+							"name": "sort"
+						},
+						{
+							"name": "UniqueRecords"
+						},
+						{
+							"name": "window2"
+						},
+						{
+							"name": "selectRequiredColumns2"
+						},
+						{
+							"name": "split"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "select2"
+						},
+						{
+							"name": "sort1"
+						},
+						{
+							"name": "sort2"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Credit_ID as integer,",
+						"          Card_Type as string,",
+						"          Credit_Name as string,",
+						"          Credit_Score as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table',",
+						"     partitionBy('hash', 1)) ~> sourceCreditScore",
+						"sourceCreditScore window(over(Card_Type,",
+						"          Credit_Name,",
+						"          Credit_Score),",
+						"     asc(Credit_ID, true),",
+						"     Row_Number = rowNumber(),",
+						"     partitionBy('hash', 1)) ~> window",
+						"window filter(greaterOrEqual(Row_Number, 2),",
+						"     partitionBy('hash', 1)) ~> RejectRecords",
+						"RejectRecords select(mapColumn(",
+						"          Credit_ID,",
+						"          Card_Type,",
+						"          Credit_Name,",
+						"          Credit_Score",
+						"     ),",
+						"     partitionBy('hash', 1),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectRequiredColumns",
+						"selectRequiredColumns sort(asc(Credit_ID, true),",
+						"     partitionBy('hash', 1)) ~> sort",
+						"window filter(equals(Row_Number, 1),",
+						"     partitionBy('hash', 1)) ~> UniqueRecords",
+						"selectRequiredColumns2 window(over(Card_Type),",
+						"     desc(Credit_Score, true),",
+						"     Row_Number = rowNumber(),",
+						"          Rank = rank(),",
+						"          Dense_Rank = denseRank(),",
+						"     partitionBy('hash', 1)) ~> window2",
+						"UniqueRecords select(mapColumn(",
+						"          Credit_ID,",
+						"          Card_Type,",
+						"          Credit_Name,",
+						"          Credit_Score",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectRequiredColumns2",
+						"window2 split(equals(Rank, 1),",
+						"     disjoint: true,",
+						"     partitionBy('hash', 1)) ~> split@(Toppers, AllCust)",
+						"split@Toppers select(mapColumn(",
+						"          Credit_ID,",
+						"          Card_Type,",
+						"          Credit_Name,",
+						"          Credit_Score",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"split@AllCust select(mapColumn(",
+						"          Credit_ID,",
+						"          Card_Type,",
+						"          Credit_Name,",
+						"          Credit_Score",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"select1 sort(asc(Credit_ID, true)) ~> sort1",
+						"select2 sort(asc(Credit_ID, true)) ~> sort2",
+						"sort1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     recreate:true,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     partitionBy('hash', 1)) ~> sinkToppers",
+						"sort2 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     recreate:true,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     partitionBy('hash', 1)) ~> sinkAllCust",
+						"sort sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> sinkRejectRecords"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_S51_Lookup_Merge')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_S51_ASLS_Cust",
+								"type": "DatasetReference"
+							},
+							"name": "sourceCustomersCSV"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S51_ASLS_Orders",
+								"type": "DatasetReference"
+							},
+							"name": "sourceOrdersCSV"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_S51_ASDB_Sink_CustOrders",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "lookup"
+						},
+						{
+							"name": "select1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Cust_Id as short,",
+						"          Cust_Name as string,",
+						"          Cust_Score as short,",
+						"          Order_Id as short",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     partitionBy('hash', 1)) ~> sourceCustomersCSV",
+						"source(output(",
+						"          Order_Id as short,",
+						"          Order_Name as string,",
+						"          Order_Date as date",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     partitionBy('hash', 1)) ~> sourceOrdersCSV",
+						"sourceCustomersCSV, sourceOrdersCSV lookup(sourceCustomersCSV@Order_Id == sourceOrdersCSV@Order_Id,",
+						"     multiple: false,",
+						"     pickup: 'any',",
+						"     partitionBy('hash', 1),",
+						"     broadcast: 'auto')~> lookup",
+						"lookup select(mapColumn(",
+						"          Cust_Id,",
+						"          Cust_Name,",
+						"          Cust_Score,",
+						"          Order_Id = sourceCustomersCSV@Order_Id,",
+						"          Order_Id = sourceOrdersCSV@Order_Id,",
+						"          Order_Name,",
+						"          Order_Date",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     recreate:true,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_S51_Lookup_Merge_Incr_Load')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_S51_ASLS_Cust",
+								"type": "DatasetReference"
+							},
+							"name": "sourceCustomersCSV"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S51_ASLS_Orders",
+								"type": "DatasetReference"
+							},
+							"name": "sourceOrdersCSV"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_S51_ASDB_Sink_CustOrders",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "lookup"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "alterRow"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Cust_Id as short,",
+						"          Cust_Name as string,",
+						"          Cust_Score as short,",
+						"          Order_Id as short",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     partitionBy('hash', 1)) ~> sourceCustomersCSV",
+						"source(output(",
+						"          Order_Id as short,",
+						"          Order_Name as string,",
+						"          Order_Date as date",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     partitionBy('hash', 1)) ~> sourceOrdersCSV",
+						"sourceCustomersCSV, sourceOrdersCSV lookup(sourceCustomersCSV@Order_Id == sourceOrdersCSV@Order_Id,",
+						"     multiple: false,",
+						"     pickup: 'any',",
+						"     partitionBy('hash', 1),",
+						"     broadcast: 'auto')~> lookup",
+						"alterRow select(mapColumn(",
+						"          Cust_Id,",
+						"          Cust_Name,",
+						"          Cust_Score,",
+						"          Order_Id = sourceCustomersCSV@Order_Id,",
+						"          Order_Id = sourceOrdersCSV@Order_Id,",
+						"          Order_Name,",
+						"          Order_Date",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"lookup alterRow(deleteIf(equals(Cust_Name,'abd')),",
+						"     upsertIf(true()),",
+						"     partitionBy('hash', 1)) ~> alterRow",
+						"select1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:true,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['Cust_Name','Order_Id'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_S52_SCD1')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_S52_ADLSGen2_Customers_CSV",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_S52_ASDB_Dim_Cust",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "derivedColumn1"
+						},
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Cust_ID as short,",
+						"          Cust_Name as string,",
+						"          Manager as string,",
+						"          City as string,",
+						"          Start_Date as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     partitionBy('hash', 1)) ~> source1",
+						"source1 derive(cust_surr_key = md5(concat(toString(Cust_ID),Cust_Name,Manager,City,toString(Start_Date)))) ~> derivedColumn1",
+						"derivedColumn1 alterRow(upsertIf(true())) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          Cust_Surr_Key as string,",
+						"          Cust_ID as integer,",
+						"          Cust_Name as string,",
+						"          Manager as string,",
+						"          City as string,",
+						"          Start_Date as timestamp,",
+						"          Update_Date as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['Cust_ID'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          Cust_Surr_Key = cust_surr_key,",
+						"          Cust_ID,",
+						"          Cust_Name,",
+						"          Manager,",
+						"          City,",
+						"          Start_Date",
+						"     ),",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_S53_SCD1_With_Surrogate_Key')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_S53_ADSLGen2_Customers_CSV",
+								"type": "DatasetReference"
+							},
+							"name": "source2"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S53_ASQLDB_Dim_Cust",
+								"type": "DatasetReference"
+							},
+							"name": "source3"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S53_ASQLDB_Dim_Cust",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_S53_ASQLDB_Dim_Cust",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						},
+						{
+							"name": "CachedSink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "join1"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "select2"
+						},
+						{
+							"name": "MatchedRows"
+						},
+						{
+							"name": "select3"
+						},
+						{
+							"name": "NewRecords"
+						},
+						{
+							"name": "surrogateKey"
+						},
+						{
+							"name": "derivedColumn1"
+						},
+						{
+							"name": "alterRow1"
+						},
+						{
+							"name": "select4"
+						},
+						{
+							"name": "union1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Cust_ID as integer,",
+						"          Cust_Name as string,",
+						"          Manager as string,",
+						"          City as string,",
+						"          Start_Date as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source2",
+						"source(output(",
+						"          Cust_Surr_Key as integer,",
+						"          Cust_ID as integer,",
+						"          Cust_Name as string,",
+						"          Manager as string,",
+						"          City as string,",
+						"          Start_Date as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> source3",
+						"source(output(",
+						"          MaxVal as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     query: 'select max(Cust_Surr_Key) as MaxVal from S53_Dim_Cust',",
+						"     format: 'query') ~> source1",
+						"select1, select2 join(src_Cust_ID == dim_Cust_ID,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"source2 select(mapColumn(",
+						"          src_Cust_ID = Cust_ID,",
+						"          src_Cust_Name = Cust_Name,",
+						"          src_Manager = Manager,",
+						"          src_City = City,",
+						"          src_Start_Date = Start_Date",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"source3 select(mapColumn(",
+						"          dim_Cust_Surr_Key = Cust_Surr_Key,",
+						"          dim_Cust_ID = Cust_ID,",
+						"          dim_Cust_Name = Cust_Name,",
+						"          dim_Manager = Manager,",
+						"          dim_City = City,",
+						"          dim_Start_Date = Start_Date",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"join1 filter(not(isNull(dim_Cust_ID))) ~> MatchedRows",
+						"MatchedRows select(mapColumn(",
+						"          Cust_ID = src_Cust_ID,",
+						"          Cust_Name = src_Cust_Name,",
+						"          Manager = src_Manager,",
+						"          City = src_City,",
+						"          Start_Date = src_Start_Date,",
+						"          Cust_Surr_Key = dim_Cust_Surr_Key",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select3",
+						"join1 filter(isNull(dim_Cust_ID)) ~> NewRecords",
+						"NewRecords keyGenerate(output(surrogateKey as long),",
+						"     startAt: 1L,",
+						"     stepValue: 1L) ~> surrogateKey",
+						"surrogateKey derive(New_Surr_Key = case(isNull(CachedSink#outputs()[1].MaxVal),0,toInteger(CachedSink#outputs()[1].MaxVal))+surrogateKey,",
+						"     partitionBy('hash', 1)) ~> derivedColumn1",
+						"union1 alterRow(upsertIf(true()),",
+						"     partitionBy('hash', 1)) ~> alterRow1",
+						"derivedColumn1 select(mapColumn(",
+						"          Cust_ID = src_Cust_ID,",
+						"          Cust_Name = src_Cust_Name,",
+						"          Manager = src_Manager,",
+						"          City = src_City,",
+						"          Start_Date = src_Start_Date,",
+						"          Cust_Surr_Key = New_Surr_Key",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select4",
+						"select4, select3 union(byName: true)~> union1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          Cust_Surr_Key as integer,",
+						"          Cust_ID as integer,",
+						"          Cust_Name as string,",
+						"          Manager as string,",
+						"          City as string,",
+						"          Start_Date as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['Cust_ID'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          Cust_Surr_Key,",
+						"          Cust_ID,",
+						"          Cust_Name,",
+						"          Manager,",
+						"          City,",
+						"          Start_Date",
+						"     ),",
+						"     partitionBy('hash', 1)) ~> sink1",
+						"source1 sink(validateSchema: false,",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     store: 'cache',",
+						"     format: 'inline',",
+						"     output: false,",
+						"     saveOrder: 1,",
+						"     mapColumn(",
+						"          MaxVal",
+						"     )) ~> CachedSink"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_S54_SCD2')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_S54_ADLSGen2_Employee_CSV",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S54_ASDB_Dim_Employee",
+								"type": "DatasetReference"
+							},
+							"name": "source2"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_S54_ASDB_Dim_Employee",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S54_ASDB_Dim_Employee",
+								"type": "DatasetReference"
+							},
+							"name": "sink2"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S54_ASDB_Dim_Employee",
+								"type": "DatasetReference"
+							},
+							"name": "sink3"
+						}
+					],
+					"transformations": [
+						{
+							"name": "select1"
+						},
+						{
+							"name": "join1"
+						},
+						{
+							"name": "updatedRecords"
+						},
+						{
+							"name": "join2"
+						},
+						{
+							"name": "ConditionalSplit"
+						},
+						{
+							"name": "derivedColumn1"
+						},
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          EmpID as integer,",
+						"          EmpName as string,",
+						"          Designation as string,",
+						"          ContactNo as string,",
+						"          Location as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source1",
+						"source(output(",
+						"          SCDKey as integer,",
+						"          EmpID as integer,",
+						"          EmpName as string,",
+						"          Designation as string,",
+						"          ContactNo as string,",
+						"          Location as string,",
+						"          IsActive as integer,",
+						"          FromDate as date,",
+						"          ToDate as date",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     query: 'select * from S54_Dim_Employee where IsActive = 1',",
+						"     format: 'query') ~> source2",
+						"source1 select(mapColumn(",
+						"          src_EmpID = EmpID,",
+						"          src_EmpName = EmpName,",
+						"          src_Designation = Designation,",
+						"          src_ContactNo = ContactNo,",
+						"          src_Location = Location",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1, source2 join(src_EmpID == EmpID,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> join1",
+						"join1 split(src_EmpID==EmpID,",
+						"     disjoint: false) ~> updatedRecords@(updateRecords, InsertRecords)",
+						"updatedRecords@updateRecords, source2 join(src_EmpID == source2@EmpID",
+						"     && src_Location == source2@Location,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     partitionBy('hash', 1),",
+						"     broadcast: 'right')~> join2",
+						"join2 split(src_Location==updatedRecords@updateRecords@Location,",
+						"     disjoint: false) ~> ConditionalSplit@(noChange, changeRecords)",
+						"ConditionalSplit@changeRecords derive(Is_Active = 0,",
+						"          update_Date = currentDate('UTC')) ~> derivedColumn1",
+						"derivedColumn1 alterRow(updateIf(true())) ~> alterRow1",
+						"updatedRecords@InsertRecords sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          SCDKey as integer,",
+						"          EmpID as integer,",
+						"          EmpName as string,",
+						"          Designation as string,",
+						"          ContactNo as string,",
+						"          Location as string,",
+						"          IsActive as integer,",
+						"          FromDate as date,",
+						"          ToDate as date",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          EmpID = src_EmpID,",
+						"          EmpName = src_EmpName,",
+						"          Designation = src_Designation,",
+						"          ContactNo = src_ContactNo,",
+						"          Location = src_Location",
+						"     )) ~> sink1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          SCDKey as integer,",
+						"          EmpID as integer,",
+						"          EmpName as string,",
+						"          Designation as string,",
+						"          ContactNo as string,",
+						"          Location as string,",
+						"          IsActive as integer,",
+						"          FromDate as date,",
+						"          ToDate as date",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:true,",
+						"     upsertable:false,",
+						"     keys:['SCDKey'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          SCDKey = ConditionalSplit@changeRecords@SCDKey,",
+						"          IsActive = Is_Active,",
+						"          ToDate = update_Date",
+						"     )) ~> sink2",
+						"ConditionalSplit@changeRecords sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          SCDKey as integer,",
+						"          EmpID as integer,",
+						"          EmpName as string,",
+						"          Designation as string,",
+						"          ContactNo as string,",
+						"          Location as string,",
+						"          IsActive as integer,",
+						"          FromDate as date,",
+						"          ToDate as date",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          EmpID = src_EmpID,",
+						"          EmpName = src_EmpName,",
+						"          Designation = src_Designation,",
+						"          ContactNo = src_ContactNo,",
+						"          Location = src_Location",
+						"     )) ~> sink3"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_S55_Flatten_JSON')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_S55_ADLSGen2_JSON",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_Azure_SQL_DB",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_Azure_SQL_DB",
+								"type": "DatasetReference"
+							},
+							"name": "sink2"
+						}
+					],
+					"transformations": [
+						{
+							"name": "flatten1"
+						},
+						{
+							"name": "Rank"
+						},
+						{
+							"name": "DenseRank"
+						},
+						{
+							"name": "split1"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "select2"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          id as short,",
+						"          management as (id as short, type as string)[],",
+						"          name as string,",
+						"          profit as short,",
+						"          type as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false,",
+						"     documentForm: 'arrayOfDocuments') ~> source1",
+						"source1 foldDown(unroll(management),",
+						"     mapColumn(",
+						"          id,",
+						"          type,",
+						"          name,",
+						"          profit,",
+						"          management",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> flatten1",
+						"flatten1 rank(desc(profit, true),",
+						"     output(Rank as long)) ~> Rank",
+						"Rank rank(desc(profit, true),",
+						"     output(DenseRank as long),",
+						"     dense: true) ~> DenseRank",
+						"DenseRank split(DenseRank == 1,",
+						"     disjoint: true) ~> split1@(Toppers, AllOrgs)",
+						"split1@Toppers select(mapColumn(",
+						"          org_id = id,",
+						"          org_type = type,",
+						"          org_name = name,",
+						"          org_profit = profit,",
+						"          management_id = management.id,",
+						"          management_role = management.type",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"split1@AllOrgs select(mapColumn(",
+						"          org_id = id,",
+						"          org_type = type,",
+						"          org_name = name,",
+						"          org_profit = profit,",
+						"          management_id = management.id,",
+						"          management_role = management.type",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"select1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          eid as integer,",
+						"          name as string,",
+						"          salary as decimal(19,4)",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError') ~> sink1",
+						"select2 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          eid as integer,",
+						"          name as string,",
+						"          salary as decimal(19,4)",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     partitionBy('hash', 1)) ~> sink2"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_S56_Performance_Metrics')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_S56_Schema_CSV",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_S56_Sink",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S56_Sink",
+								"type": "DatasetReference"
+							},
+							"name": "sink2"
+						}
+					],
+					"transformations": [
+						{
+							"name": "split1"
+						}
+					],
+					"scriptLines": [
+						"parameters{",
+						"     df_param_credit_Score as integer,",
+						"     df_param_toppers_file_name as string,",
+						"     df_param_all_cust_File_name as string",
+						"}",
+						"source(output(",
+						"          Credit_ID as short,",
+						"          Credit_Type as string,",
+						"          Credit_Name as string,",
+						"          Credit_Score as short",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     inferDriftedColumnTypes: true,",
+						"     ignoreNoFilesFound: false) ~> source1",
+						"source1 split(greaterOrEqual(Credit_Score,$df_param_credit_Score),",
+						"     disjoint: true) ~> split1@(ScorePass, AllCust)",
+						"split1@ScorePass sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:[($df_param_toppers_file_name)],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1",
+						"split1@AllCust sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:[($df_param_all_cust_File_name)],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink2"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_S57_Pivot')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_S57_Pivot_Input",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_S57_Pivot_Output",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "pivot1"
+						},
+						{
+							"name": "derivedColumn1"
+						},
+						{
+							"name": "MapDrifted1",
+							"description": "Creates an explicit mapping for each drifted column"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Credit_ID as short,",
+						"          Credit_Type as string,",
+						"          Credit_Name as string,",
+						"          Credit_Score as short",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source1",
+						"source1 pivot(groupBy(Credit_ID,",
+						"          Credit_Name),",
+						"     pivotBy(Credit_Type),",
+						"     {} = sum(toInteger(Credit_Score)),",
+						"     columnNaming: '$N$V_Card',",
+						"     lateral: true) ~> pivot1",
+						"MapDrifted1 derive(status = case(Master_Card==Visa_Card, \"Eligible\", \"Not Eligible\")) ~> derivedColumn1",
+						"pivot1 derive(Master_Card = toLong(byName('Master_Card')),",
+						"          Visa_Card = toLong(byName('Visa_Card'))) ~> MapDrifted1",
+						"derivedColumn1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['pivotOutput.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_S57_UnPivot')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_S57_UnPivot_Input",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_S57_UnPivot_Output",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "unpivot1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Credit_ID as integer,",
+						"          Credit_Name as string,",
+						"          Master as integer,",
+						"          Visa as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source1",
+						"source1 unpivot(output(",
+						"          Credit_Type as string,",
+						"          Credit_Score as integer",
+						"     ),",
+						"     ungroupBy(Credit_ID,",
+						"          Credit_Name),",
+						"     lateral: true,",
+						"     ignoreNullPivots: false) ~> unpivot1",
+						"unpivot1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['UnPivotOutput.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_S58_Date_Validations')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_S58_Input",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_S58_Output",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_S58_Output",
+								"type": "DatasetReference"
+							},
+							"name": "sink2"
+						}
+					],
+					"transformations": [
+						{
+							"name": "split1"
+						},
+						{
+							"name": "derivedColumn1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Credit_ID as integer,",
+						"          Credit_Type as string,",
+						"          Credit_Name as string,",
+						"          Credit_Score as integer,",
+						"          EMI_Start_Date as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source1",
+						"derivedColumn1 split(case(isNull(toDate(EMI_Start_Date,'yyyy-MM-dd')),false(),true()),",
+						"     disjoint: false) ~> split1@(GoodRecords, BadRecods)",
+						"source1 derive(Load_Date = currentDate('UTC')) ~> derivedColumn1",
+						"split1@GoodRecords sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['GoodRecods.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1",
+						"split1@BadRecods sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     partitionFileNames:['BadRecods.csv'],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink2"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_S58_Log')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_S58_Log_Input",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_S58_Log_Output",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "derivedColumn1"
+						}
+					],
+					"scriptLines": [
+						"parameters{",
+						"     dfp_AdfName as string,",
+						"     dfp_PipelineName as string,",
+						"     dfp_RunID as string,",
+						"     dfp_Status as string,",
+						"     dfp_ExecutionStartTime as string,",
+						"     dfp_ExecutionEndTime as string,",
+						"     dfp_Duration as string,",
+						"     dfp_LogfileName as string",
+						"}",
+						"source(output(",
+						"          Log as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source1",
+						"source1 derive(AdfName = $dfp_AdfName,",
+						"          PipelineName = $dfp_PipelineName,",
+						"          RunID = $dfp_RunID,",
+						"          Status = $dfp_Status,",
+						"          ExecutionStartTime = $dfp_ExecutionStartTime,",
+						"          ExecutionEndTime = $dfp_ExecutionEndTime,",
+						"          Duration = $dfp_Duration) ~> derivedColumn1",
+						"derivedColumn1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          Log as string",
+						"     ),",
+						"     partitionFileNames:[($dfp_LogfileName)],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_S48_Filter_Conditional_Split')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_S48_Filter_Conditional_Split",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"custcsv": {},
+									"orderscsv": {},
+									"sinkindia": {},
+									"sinkusa": {},
+									"sinkother": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-03-15T13:02:17Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_S48_Filter_Conditional_Split')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_S49_Restart_From_Failure')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_S49_RestartFromFailure",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"sourcematch1": {},
+									"sourcematch2": {},
+									"sourcematch3": {},
+									"sourceseries": {},
+									"sink": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-03-15T14:19:59Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_S49_RestartFromFailure')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_S50_Remove_Duplicates')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_S50_Remove_Duplicates",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"sourceCreditScore": {},
+									"sinkToppers": {},
+									"sinkAllCust": {},
+									"sinkRejectRecords": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-03-15T20:09:36Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_S50_Remove_Duplicates')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_S51_Historical_Load')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_S51_Lookup_Merge",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"sourceCustomersCSV": {},
+									"sourceOrdersCSV": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2023-03-16T11:20:28Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_S51_Lookup_Merge')]"
+			]
+		}
+	]
+}

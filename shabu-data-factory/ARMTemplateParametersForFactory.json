@@ -1,0 +1,36 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "shabu-data-factory"
+		},
+		"LS_Blob_connectionString": {
+			"value": ""
+		},
+		"LS_ADLSGen2_properties_typeProperties_url": {
+			"value": "https://shabuadlsgen2.dfs.core.windows.net"
+		},
+		"LS_Azure_SQL_DB_properties_typeProperties_connectionString_secretName": {
+			"value": "sqlconn"
+		},
+		"LS_Azure_SQL_DW_properties_typeProperties_connectionString_secretName": {
+			"value": "sqldwconn"
+		},
+		"LS_SQLKV_properties_typeProperties_baseUrl": {
+			"value": "https://shabuakv.vault.azure.net/"
+		},
+		"LS_SQL_DB_properties_typeProperties_connectionString_secretName": {
+			"value": "sqlconn"
+		},
+		"Event_Trigger_properties_typeProperties_scope": {
+			"value": "/subscriptions/5696d5ca-0e10-487a-af93-e1150e7cdb8d/resourceGroups/shabu-azure/providers/Microsoft.Storage/storageAccounts/shabustorageacct"
+		},
+		"Trigger_Error_Log_Pipeline_properties_PL_Log_Into_Table_parameters_PL_Prm_Source_Tab_Name": {
+			"value": "emp"
+		},
+		"Trigger_Error_Log_Pipeline_properties_PL_Log_Into_Table_parameters_PL_Sink_Tab_Name": {
+			"value": "emp_sink"
+		}
+	}
+}
