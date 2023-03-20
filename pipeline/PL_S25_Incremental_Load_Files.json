@@ -1,0 +1,207 @@
+{
+	"name": "PL_S25_Incremental_Load_Files",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup_Metadata_Table",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "DS_Azure_SQL_DB",
+						"type": "DatasetReference",
+						"parameters": {
+							"SourceTableName": "metadata_S25",
+							"SourceTableSchema": "dbo"
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach_Source_Container",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup_Metadata_Table",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup_Metadata_Table').output.value",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Set Upperbound time value",
+							"type": "SetVariable",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "upperBound",
+								"value": {
+									"value": "@if(lessOrEquals(addminutes(item().last_processed_value,item().duration),convertTimeZone(utcnow(), 'utc', 'india standard time')),addminutes(item().last_processed_value,item().duration),convertTimeZone(utcnow(), 'utc', 'india standard time'))",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Copy data blob to blob",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Set Upperbound time value",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true,
+										"modifiedDatetimeStart": {
+											"value": "@convertToUtc(item().last_processed_value,'india standard time')",
+											"type": "Expression"
+										},
+										"modifiedDatetimeEnd": {
+											"value": "@convertToUtc(variables('upperBound'),'india standard time')",
+											"type": "Expression"
+										},
+										"wildcardFileName": "*",
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobStorageWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_BLOB_CSV_NO_FILE_NAME",
+									"type": "DatasetReference",
+									"parameters": {
+										"containername": {
+											"value": "@item().sourcecontainer",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_BLOB_CSV_NO_FILE_NAME",
+									"type": "DatasetReference",
+									"parameters": {
+										"containername": {
+											"value": "@item().sinkcontainer",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "SP_Update_LPV",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Copy data blob to blob",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[usp_metadata_S25]",
+								"storedProcedureParameters": {
+									"containerName": {
+										"value": {
+											"value": "@item().sourcecontainer",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"lpv": {
+										"value": {
+											"value": "@variables('upperBound')",
+											"type": "Expression"
+										},
+										"type": "Datetime"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "LS_Azure_SQL_DB",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"upperBound": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-03-07T16:37:58Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

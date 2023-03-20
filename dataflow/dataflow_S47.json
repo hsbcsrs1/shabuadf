@@ -1,0 +1,90 @@
+{
+	"name": "dataflow_S47",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_S47_Customers_CSV",
+						"type": "DatasetReference"
+					},
+					"name": "customerscsv"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_S47_Orders_CSV",
+						"type": "DatasetReference"
+					},
+					"name": "orderscsv"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_Blob_CSV",
+						"type": "DatasetReference"
+					},
+					"name": "sink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "InnerJoin"
+				},
+				{
+					"name": "selectcolumns"
+				},
+				{
+					"name": "columnsort"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          customerid as short,",
+				"          customername as string,",
+				"          contactname as string,",
+				"          country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> customerscsv",
+				"source(output(",
+				"          customerid as short,",
+				"          ordername as string,",
+				"          orderdate as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> orderscsv",
+				"customerscsv, orderscsv join(0==0,",
+				"     joinType:'cross',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     partitionBy('hash', 1),",
+				"     broadcast: 'auto')~> InnerJoin",
+				"InnerJoin select(mapColumn(",
+				"          customerid = customerscsv@customerid,",
+				"          customername,",
+				"          contactname,",
+				"          country,",
+				"          ordername,",
+				"          orderdate",
+				"     ),",
+				"     partitionBy('hash', 1),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectcolumns",
+				"selectcolumns sort(asc(customerid, true),",
+				"     partitionBy('hash', 1)) ~> columnsort",
+				"columnsort sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['CrossJoinOutput.csv'],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> sink"
+			]
+		}
+	}
+}

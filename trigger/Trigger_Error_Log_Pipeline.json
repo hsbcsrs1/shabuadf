@@ -1,0 +1,29 @@
+{
+	"name": "Trigger_Error_Log_Pipeline",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PL_Log_Into_Table",
+					"type": "PipelineReference"
+				},
+				"parameters": {
+					"PL_Prm_Source_Tab_Name": "emp",
+					"PL_Sink_Tab_Name": "emp_sink"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Minute",
+				"interval": 15,
+				"startTime": "2023-02-26T21:00:00Z",
+				"endTime": "2023-02-27T21:03:00Z",
+				"timeZone": "UTC"
+			}
+		}
+	}
+}

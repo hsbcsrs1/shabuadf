@@ -1,0 +1,20 @@
+{
+	"name": "LS_ADLSGen2",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "AzureBlobFS",
+		"typeProperties": {
+			"url": "https://shabuadlsgen2.dfs.core.windows.net",
+			"accountKey": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "LS_SQLKV",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "adlsgen2key",
+				"secretVersion": "72c8c30b8f4149749bbf7ff81472c32e"
+			}
+		}
+	}
+}

@@ -1,0 +1,67 @@
+{
+	"name": "DF_S57_Pivot",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_S57_Pivot_Input",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_S57_Pivot_Output",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "pivot1"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "MapDrifted1",
+					"description": "Creates an explicit mapping for each drifted column"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Credit_ID as short,",
+				"          Credit_Type as string,",
+				"          Credit_Name as string,",
+				"          Credit_Score as short",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source1 pivot(groupBy(Credit_ID,",
+				"          Credit_Name),",
+				"     pivotBy(Credit_Type),",
+				"     {} = sum(toInteger(Credit_Score)),",
+				"     columnNaming: '$N$V_Card',",
+				"     lateral: true) ~> pivot1",
+				"MapDrifted1 derive(status = case(Master_Card==Visa_Card, \"Eligible\", \"Not Eligible\")) ~> derivedColumn1",
+				"pivot1 derive(Master_Card = toLong(byName('Master_Card')),",
+				"          Visa_Card = toLong(byName('Visa_Card'))) ~> MapDrifted1",
+				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['pivotOutput.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> sink1"
+			]
+		}
+	}
+}

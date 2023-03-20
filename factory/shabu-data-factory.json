@@ -1,0 +1,9 @@
+{
+	"name": "shabu-data-factory",
+	"location": "southindia",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "e3d90af7-bcac-4d1d-be8e-214df9b6773d",
+		"tenantId": "3dc09e01-8a91-4925-a0f7-67837bb99b8d"
+	}
+}

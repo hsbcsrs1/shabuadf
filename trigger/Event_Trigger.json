@@ -1,0 +1,25 @@
+{
+	"name": "Event_Trigger",
+	"properties": {
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "PL_S27_DATA_Event_Trigger",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "BlobEventsTrigger",
+		"typeProperties": {
+			"blobPathBeginsWith": "/input/blobs/",
+			"blobPathEndsWith": "success.csv",
+			"ignoreEmptyBlobs": true,
+			"scope": "/subscriptions/5696d5ca-0e10-487a-af93-e1150e7cdb8d/resourceGroups/shabu-azure/providers/Microsoft.Storage/storageAccounts/shabustorageacct",
+			"events": [
+				"Microsoft.Storage.BlobCreated"
+			]
+		}
+	}
+}

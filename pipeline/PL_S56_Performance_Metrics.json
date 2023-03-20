@@ -1,0 +1,59 @@
+{
+	"name": "PL_S56_Performance_Metrics",
+	"properties": {
+		"activities": [
+			{
+				"name": "Data flow1",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "DF_S56_Performance_Metrics",
+						"type": "DataFlowReference",
+						"parameters": {
+							"df_param_credit_Score": {
+								"value": "@pipeline().parameters.pass_score",
+								"type": "Expression"
+							},
+							"df_param_toppers_file_name": {
+								"value": "'@{pipeline().parameters.toppers_file_name}'",
+								"type": "Expression"
+							},
+							"df_param_all_cust_File_name": {
+								"value": "'@{pipeline().parameters.customers_file_name}'",
+								"type": "Expression"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"parameters": {
+			"toppers_file_name": {
+				"type": "string"
+			},
+			"customers_file_name": {
+				"type": "string"
+			},
+			"pass_score": {
+				"type": "int"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-03-18T18:03:56Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

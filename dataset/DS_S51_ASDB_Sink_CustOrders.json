@@ -1,0 +1,17 @@
+{
+	"name": "DS_S51_ASDB_Sink_CustOrders",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Azure_SQL_DB",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "S51_CustOrders"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

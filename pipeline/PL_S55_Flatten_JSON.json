@@ -1,0 +1,44 @@
+{
+	"name": "PL_S55_Flatten_JSON",
+	"properties": {
+		"activities": [
+			{
+				"name": "Data flow1",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "DF_S55_Flatten_JSON",
+						"type": "DataFlowReference",
+						"datasetParameters": {
+							"sink1": {
+								"SourceTableName": "S55_Toppers",
+								"SourceTableSchema": "dbo"
+							},
+							"sink2": {
+								"SourceTableName": "S55_AllOrgs",
+								"SourceTableSchema": "dbo"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2023-03-18T17:22:28Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

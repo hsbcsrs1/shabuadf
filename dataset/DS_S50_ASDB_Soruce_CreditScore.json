@@ -1,0 +1,36 @@
+{
+	"name": "DS_S50_ASDB_Soruce_CreditScore",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Azure_SQL_DB",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Credit_ID",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Card_Type",
+				"type": "varchar"
+			},
+			{
+				"name": "Credit_Name",
+				"type": "varchar"
+			},
+			{
+				"name": "Credit_Score",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "S50_CreditScore"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

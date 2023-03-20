@@ -1,0 +1,129 @@
+{
+	"name": "PL_S17_Copy_SQL_Tables",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy data from SQL table to SQL table",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[dbo].[sp_insert_data]",
+						"storedProcedureParameters": {
+							"empid": {
+								"type": "Int32",
+								"value": "1004"
+							},
+							"ename": {
+								"type": "String",
+								"value": "Arjun"
+							},
+							"sal": {
+								"type": "Decimal",
+								"value": "15000"
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "Truncate table emp_sink",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"mappings": [
+							{
+								"source": {
+									"name": "eid",
+									"type": "Int32",
+									"physicalType": "int"
+								},
+								"sink": {
+									"name": "eid",
+									"type": "Int32",
+									"physicalType": "Int32"
+								}
+							},
+							{
+								"source": {
+									"name": "name",
+									"type": "String",
+									"physicalType": "varchar"
+								},
+								"sink": {
+									"name": "name",
+									"type": "String",
+									"physicalType": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "salary",
+									"type": "Decimal",
+									"physicalType": "money",
+									"scale": 4,
+									"precision": 19
+								},
+								"sink": {
+									"name": "salary",
+									"type": "Decimal",
+									"physicalType": "Decimal"
+								}
+							},
+							{
+								"source": {
+									"name": "Time_Stamp"
+								},
+								"sink": {
+									"name": "Time_Stamp"
+								}
+							}
+						],
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_Azure_SQL_DB",
+						"type": "DatasetReference",
+						"parameters": {
+							"SourceTableName": "emp",
+							"SourceTableSchema": "dbo"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_SQL_DB_Sink",
+						"type": "DatasetReference",
+						"parameters": {
+							"SinkTableName": "emp_sink",
+							"SinkTableSchema": "dbo"
+						}
+					}
+				]
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2023-02-26T20:11:26Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

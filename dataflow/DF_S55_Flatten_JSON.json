@@ -1,0 +1,134 @@
+{
+	"name": "DF_S55_Flatten_JSON",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_S55_ADLSGen2_JSON",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_Azure_SQL_DB",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Azure_SQL_DB",
+						"type": "DatasetReference"
+					},
+					"name": "sink2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "flatten1"
+				},
+				{
+					"name": "Rank"
+				},
+				{
+					"name": "DenseRank"
+				},
+				{
+					"name": "split1"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "select2"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          id as short,",
+				"          management as (id as short, type as string)[],",
+				"          name as string,",
+				"          profit as short,",
+				"          type as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     documentForm: 'arrayOfDocuments') ~> source1",
+				"source1 foldDown(unroll(management),",
+				"     mapColumn(",
+				"          id,",
+				"          type,",
+				"          name,",
+				"          profit,",
+				"          management",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> flatten1",
+				"flatten1 rank(desc(profit, true),",
+				"     output(Rank as long)) ~> Rank",
+				"Rank rank(desc(profit, true),",
+				"     output(DenseRank as long),",
+				"     dense: true) ~> DenseRank",
+				"DenseRank split(DenseRank == 1,",
+				"     disjoint: true) ~> split1@(Toppers, AllOrgs)",
+				"split1@Toppers select(mapColumn(",
+				"          org_id = id,",
+				"          org_type = type,",
+				"          org_name = name,",
+				"          org_profit = profit,",
+				"          management_id = management.id,",
+				"          management_role = management.type",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"split1@AllOrgs select(mapColumn(",
+				"          org_id = id,",
+				"          org_type = type,",
+				"          org_name = name,",
+				"          org_profit = profit,",
+				"          management_id = management.id,",
+				"          management_role = management.type",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          eid as integer,",
+				"          name as string,",
+				"          salary as decimal(19,4)",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sink1",
+				"select2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          eid as integer,",
+				"          name as string,",
+				"          salary as decimal(19,4)",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     partitionBy('hash', 1)) ~> sink2"
+			]
+		}
+	}
+}

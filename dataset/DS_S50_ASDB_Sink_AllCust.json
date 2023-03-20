@@ -1,0 +1,17 @@
+{
+	"name": "DS_S50_ASDB_Sink_AllCust",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Azure_SQL_DB",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "AllCust"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

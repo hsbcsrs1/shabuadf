@@ -1,0 +1,181 @@
+{
+	"name": "DF_S50_Remove_Duplicates",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_S50_ASDB_Soruce_CreditScore",
+						"type": "DatasetReference"
+					},
+					"name": "sourceCreditScore"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_S50_ASDB_Sink_Toppers",
+						"type": "DatasetReference"
+					},
+					"name": "sinkToppers"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_S50_ASDB_Sink_AllCust",
+						"type": "DatasetReference"
+					},
+					"name": "sinkAllCust"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_S50_ASDB_Sink_RejectRecords",
+						"type": "DatasetReference"
+					},
+					"name": "sinkRejectRecords"
+				}
+			],
+			"transformations": [
+				{
+					"name": "window"
+				},
+				{
+					"name": "RejectRecords"
+				},
+				{
+					"name": "selectRequiredColumns"
+				},
+				{
+					"name": "sort"
+				},
+				{
+					"name": "UniqueRecords"
+				},
+				{
+					"name": "window2"
+				},
+				{
+					"name": "selectRequiredColumns2"
+				},
+				{
+					"name": "split"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "select2"
+				},
+				{
+					"name": "sort1"
+				},
+				{
+					"name": "sort2"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Credit_ID as integer,",
+				"          Card_Type as string,",
+				"          Credit_Name as string,",
+				"          Credit_Score as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table',",
+				"     partitionBy('hash', 1)) ~> sourceCreditScore",
+				"sourceCreditScore window(over(Card_Type,",
+				"          Credit_Name,",
+				"          Credit_Score),",
+				"     asc(Credit_ID, true),",
+				"     Row_Number = rowNumber(),",
+				"     partitionBy('hash', 1)) ~> window",
+				"window filter(greaterOrEqual(Row_Number, 2),",
+				"     partitionBy('hash', 1)) ~> RejectRecords",
+				"RejectRecords select(mapColumn(",
+				"          Credit_ID,",
+				"          Card_Type,",
+				"          Credit_Name,",
+				"          Credit_Score",
+				"     ),",
+				"     partitionBy('hash', 1),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectRequiredColumns",
+				"selectRequiredColumns sort(asc(Credit_ID, true),",
+				"     partitionBy('hash', 1)) ~> sort",
+				"window filter(equals(Row_Number, 1),",
+				"     partitionBy('hash', 1)) ~> UniqueRecords",
+				"selectRequiredColumns2 window(over(Card_Type),",
+				"     desc(Credit_Score, true),",
+				"     Row_Number = rowNumber(),",
+				"          Rank = rank(),",
+				"          Dense_Rank = denseRank(),",
+				"     partitionBy('hash', 1)) ~> window2",
+				"UniqueRecords select(mapColumn(",
+				"          Credit_ID,",
+				"          Card_Type,",
+				"          Credit_Name,",
+				"          Credit_Score",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectRequiredColumns2",
+				"window2 split(equals(Rank, 1),",
+				"     disjoint: true,",
+				"     partitionBy('hash', 1)) ~> split@(Toppers, AllCust)",
+				"split@Toppers select(mapColumn(",
+				"          Credit_ID,",
+				"          Card_Type,",
+				"          Credit_Name,",
+				"          Credit_Score",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"split@AllCust select(mapColumn(",
+				"          Credit_ID,",
+				"          Card_Type,",
+				"          Credit_Name,",
+				"          Credit_Score",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"select1 sort(asc(Credit_ID, true)) ~> sort1",
+				"select2 sort(asc(Credit_ID, true)) ~> sort2",
+				"sort1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     recreate:true,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     partitionBy('hash', 1)) ~> sinkToppers",
+				"sort2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     recreate:true,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     partitionBy('hash', 1)) ~> sinkAllCust",
+				"sort sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> sinkRejectRecords"
+			]
+		}
+	}
+}

@@ -1,0 +1,68 @@
+{
+	"name": "DF_S58_Log",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_S58_Log_Input",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_S58_Log_Output",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     dfp_AdfName as string,",
+				"     dfp_PipelineName as string,",
+				"     dfp_RunID as string,",
+				"     dfp_Status as string,",
+				"     dfp_ExecutionStartTime as string,",
+				"     dfp_ExecutionEndTime as string,",
+				"     dfp_Duration as string,",
+				"     dfp_LogfileName as string",
+				"}",
+				"source(output(",
+				"          Log as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source1 derive(AdfName = $dfp_AdfName,",
+				"          PipelineName = $dfp_PipelineName,",
+				"          RunID = $dfp_RunID,",
+				"          Status = $dfp_Status,",
+				"          ExecutionStartTime = $dfp_ExecutionStartTime,",
+				"          ExecutionEndTime = $dfp_ExecutionEndTime,",
+				"          Duration = $dfp_Duration) ~> derivedColumn1",
+				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Log as string",
+				"     ),",
+				"     partitionFileNames:[($dfp_LogfileName)],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> sink1"
+			]
+		}
+	}
+}

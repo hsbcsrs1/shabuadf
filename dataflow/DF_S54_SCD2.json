@@ -1,0 +1,209 @@
+{
+	"name": "DF_S54_SCD2",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_S54_ADLSGen2_Employee_CSV",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_S54_ASDB_Dim_Employee",
+						"type": "DatasetReference"
+					},
+					"name": "source2"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_S54_ASDB_Dim_Employee",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_S54_ASDB_Dim_Employee",
+						"type": "DatasetReference"
+					},
+					"name": "sink2"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_S54_ASDB_Dim_Employee",
+						"type": "DatasetReference"
+					},
+					"name": "sink3"
+				}
+			],
+			"transformations": [
+				{
+					"name": "select1"
+				},
+				{
+					"name": "join1"
+				},
+				{
+					"name": "updatedRecords"
+				},
+				{
+					"name": "join2"
+				},
+				{
+					"name": "ConditionalSplit"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          EmpID as integer,",
+				"          EmpName as string,",
+				"          Designation as string,",
+				"          ContactNo as string,",
+				"          Location as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source(output(",
+				"          SCDKey as integer,",
+				"          EmpID as integer,",
+				"          EmpName as string,",
+				"          Designation as string,",
+				"          ContactNo as string,",
+				"          Location as string,",
+				"          IsActive as integer,",
+				"          FromDate as date,",
+				"          ToDate as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'select * from S54_Dim_Employee where IsActive = 1',",
+				"     format: 'query') ~> source2",
+				"source1 select(mapColumn(",
+				"          src_EmpID = EmpID,",
+				"          src_EmpName = EmpName,",
+				"          src_Designation = Designation,",
+				"          src_ContactNo = ContactNo,",
+				"          src_Location = Location",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1, source2 join(src_EmpID == EmpID,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1 split(src_EmpID==EmpID,",
+				"     disjoint: false) ~> updatedRecords@(updateRecords, InsertRecords)",
+				"updatedRecords@updateRecords, source2 join(src_EmpID == source2@EmpID",
+				"     && src_Location == source2@Location,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     partitionBy('hash', 1),",
+				"     broadcast: 'right')~> join2",
+				"join2 split(src_Location==updatedRecords@updateRecords@Location,",
+				"     disjoint: false) ~> ConditionalSplit@(noChange, changeRecords)",
+				"ConditionalSplit@changeRecords derive(Is_Active = 0,",
+				"          update_Date = currentDate('UTC')) ~> derivedColumn1",
+				"derivedColumn1 alterRow(updateIf(true())) ~> alterRow1",
+				"updatedRecords@InsertRecords sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          SCDKey as integer,",
+				"          EmpID as integer,",
+				"          EmpName as string,",
+				"          Designation as string,",
+				"          ContactNo as string,",
+				"          Location as string,",
+				"          IsActive as integer,",
+				"          FromDate as date,",
+				"          ToDate as date",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          EmpID = src_EmpID,",
+				"          EmpName = src_EmpName,",
+				"          Designation = src_Designation,",
+				"          ContactNo = src_ContactNo,",
+				"          Location = src_Location",
+				"     )) ~> sink1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          SCDKey as integer,",
+				"          EmpID as integer,",
+				"          EmpName as string,",
+				"          Designation as string,",
+				"          ContactNo as string,",
+				"          Location as string,",
+				"          IsActive as integer,",
+				"          FromDate as date,",
+				"          ToDate as date",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:true,",
+				"     upsertable:false,",
+				"     keys:['SCDKey'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          SCDKey = ConditionalSplit@changeRecords@SCDKey,",
+				"          IsActive = Is_Active,",
+				"          ToDate = update_Date",
+				"     )) ~> sink2",
+				"ConditionalSplit@changeRecords sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          SCDKey as integer,",
+				"          EmpID as integer,",
+				"          EmpName as string,",
+				"          Designation as string,",
+				"          ContactNo as string,",
+				"          Location as string,",
+				"          IsActive as integer,",
+				"          FromDate as date,",
+				"          ToDate as date",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          EmpID = src_EmpID,",
+				"          EmpName = src_EmpName,",
+				"          Designation = src_Designation,",
+				"          ContactNo = src_ContactNo,",
+				"          Location = src_Location",
+				"     )) ~> sink3"
+			]
+		}
+	}
+}

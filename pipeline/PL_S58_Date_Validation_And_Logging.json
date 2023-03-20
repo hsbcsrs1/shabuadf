@@ -1,0 +1,99 @@
+{
+	"name": "PL_S58_Date_Validation_And_Logging",
+	"properties": {
+		"activities": [
+			{
+				"name": "Data flow1",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "DF_S58_Date_Validations",
+						"type": "DataFlowReference"
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "Data flow2",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [
+					{
+						"activity": "Data flow1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "DF_S58_Log",
+						"type": "DataFlowReference",
+						"parameters": {
+							"dfp_AdfName": {
+								"value": "'@{pipeline().DataFactory}'",
+								"type": "Expression"
+							},
+							"dfp_PipelineName": {
+								"value": "'@{pipeline().Pipeline}'",
+								"type": "Expression"
+							},
+							"dfp_RunID": {
+								"value": "'@{pipeline().RunId}'",
+								"type": "Expression"
+							},
+							"dfp_Status": {
+								"value": "'@{activity('Data flow1').status}'",
+								"type": "Expression"
+							},
+							"dfp_ExecutionStartTime": {
+								"value": "'@{activity('Data flow1').ExecutionStartTime}'",
+								"type": "Expression"
+							},
+							"dfp_ExecutionEndTime": {
+								"value": "'@{activity('Data flow1').ExecutionEndTime}'",
+								"type": "Expression"
+							},
+							"dfp_Duration": {
+								"value": "'@{activity('Data flow1').duration}'",
+								"type": "Expression"
+							},
+							"dfp_LogfileName": {
+								"value": "'@{concat('Log_',formatDateTime(utcNow(),'yyyyMMdd_HHmmss'),'.csv')}'",
+								"type": "Expression"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2023-03-19T18:58:42Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

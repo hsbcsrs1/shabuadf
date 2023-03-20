@@ -1,0 +1,202 @@
+{
+	"name": "DF_S53_SCD1_With_Surrogate_Key",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_S53_ADSLGen2_Customers_CSV",
+						"type": "DatasetReference"
+					},
+					"name": "source2"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_S53_ASQLDB_Dim_Cust",
+						"type": "DatasetReference"
+					},
+					"name": "source3"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_S53_ASQLDB_Dim_Cust",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_S53_ASQLDB_Dim_Cust",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				},
+				{
+					"name": "CachedSink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "join1"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "select2"
+				},
+				{
+					"name": "MatchedRows"
+				},
+				{
+					"name": "select3"
+				},
+				{
+					"name": "NewRecords"
+				},
+				{
+					"name": "surrogateKey"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "alterRow1"
+				},
+				{
+					"name": "select4"
+				},
+				{
+					"name": "union1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Cust_ID as integer,",
+				"          Cust_Name as string,",
+				"          Manager as string,",
+				"          City as string,",
+				"          Start_Date as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source2",
+				"source(output(",
+				"          Cust_Surr_Key as integer,",
+				"          Cust_ID as integer,",
+				"          Cust_Name as string,",
+				"          Manager as string,",
+				"          City as string,",
+				"          Start_Date as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source3",
+				"source(output(",
+				"          MaxVal as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     query: 'select max(Cust_Surr_Key) as MaxVal from S53_Dim_Cust',",
+				"     format: 'query') ~> source1",
+				"select1, select2 join(src_Cust_ID == dim_Cust_ID,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"source2 select(mapColumn(",
+				"          src_Cust_ID = Cust_ID,",
+				"          src_Cust_Name = Cust_Name,",
+				"          src_Manager = Manager,",
+				"          src_City = City,",
+				"          src_Start_Date = Start_Date",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"source3 select(mapColumn(",
+				"          dim_Cust_Surr_Key = Cust_Surr_Key,",
+				"          dim_Cust_ID = Cust_ID,",
+				"          dim_Cust_Name = Cust_Name,",
+				"          dim_Manager = Manager,",
+				"          dim_City = City,",
+				"          dim_Start_Date = Start_Date",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"join1 filter(not(isNull(dim_Cust_ID))) ~> MatchedRows",
+				"MatchedRows select(mapColumn(",
+				"          Cust_ID = src_Cust_ID,",
+				"          Cust_Name = src_Cust_Name,",
+				"          Manager = src_Manager,",
+				"          City = src_City,",
+				"          Start_Date = src_Start_Date,",
+				"          Cust_Surr_Key = dim_Cust_Surr_Key",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select3",
+				"join1 filter(isNull(dim_Cust_ID)) ~> NewRecords",
+				"NewRecords keyGenerate(output(surrogateKey as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> surrogateKey",
+				"surrogateKey derive(New_Surr_Key = case(isNull(CachedSink#outputs()[1].MaxVal),0,toInteger(CachedSink#outputs()[1].MaxVal))+surrogateKey,",
+				"     partitionBy('hash', 1)) ~> derivedColumn1",
+				"union1 alterRow(upsertIf(true()),",
+				"     partitionBy('hash', 1)) ~> alterRow1",
+				"derivedColumn1 select(mapColumn(",
+				"          Cust_ID = src_Cust_ID,",
+				"          Cust_Name = src_Cust_Name,",
+				"          Manager = src_Manager,",
+				"          City = src_City,",
+				"          Start_Date = src_Start_Date,",
+				"          Cust_Surr_Key = New_Surr_Key",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select4",
+				"select4, select3 union(byName: true)~> union1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Cust_Surr_Key as integer,",
+				"          Cust_ID as integer,",
+				"          Cust_Name as string,",
+				"          Manager as string,",
+				"          City as string,",
+				"          Start_Date as timestamp",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:false,",
+				"     upsertable:true,",
+				"     keys:['Cust_ID'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          Cust_Surr_Key,",
+				"          Cust_ID,",
+				"          Cust_Name,",
+				"          Manager,",
+				"          City,",
+				"          Start_Date",
+				"     ),",
+				"     partitionBy('hash', 1)) ~> sink1",
+				"source1 sink(validateSchema: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     store: 'cache',",
+				"     format: 'inline',",
+				"     output: false,",
+				"     saveOrder: 1,",
+				"     mapColumn(",
+				"          MaxVal",
+				"     )) ~> CachedSink"
+			]
+		}
+	}
+}

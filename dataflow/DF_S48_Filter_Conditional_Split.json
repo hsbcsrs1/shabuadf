@@ -1,0 +1,130 @@
+{
+	"name": "DF_S48_Filter_Conditional_Split",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_S48_Cust_CSV",
+						"type": "DatasetReference"
+					},
+					"name": "custcsv"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_S48_Orders_CSV",
+						"type": "DatasetReference"
+					},
+					"name": "orderscsv"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_S48_India",
+						"type": "DatasetReference"
+					},
+					"name": "sinkindia"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_S48_USA",
+						"type": "DatasetReference"
+					},
+					"name": "sinkusa"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_S48_Other",
+						"type": "DatasetReference"
+					},
+					"name": "sinkother"
+				}
+			],
+			"transformations": [
+				{
+					"name": "leftjoin"
+				},
+				{
+					"name": "selectrequiredcolumns"
+				},
+				{
+					"name": "filtermatchedrows"
+				},
+				{
+					"name": "conditionalsplit"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          customerid as short,",
+				"          customername as string,",
+				"          contactname as string,",
+				"          country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> custcsv",
+				"source(output(",
+				"          customerid as integer,",
+				"          ordername as string,",
+				"          orderdate as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> orderscsv",
+				"custcsv, orderscsv join(custcsv@customerid == orderscsv@customerid,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     partitionBy('hash', 1),",
+				"     broadcast: 'auto')~> leftjoin",
+				"filtermatchedrows select(mapColumn(",
+				"          customerid = custcsv@customerid,",
+				"          customername,",
+				"          contactname,",
+				"          country",
+				"     ),",
+				"     partitionBy('hash', 1),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> selectrequiredcolumns",
+				"leftjoin filter(isNull(orderdate),",
+				"     partitionBy('hash', 1)) ~> filtermatchedrows",
+				"selectrequiredcolumns split(equals(country, 'india'),",
+				"     equals(country, 'usa'),",
+				"     disjoint: false,",
+				"     partitionBy('hash', 1)) ~> conditionalsplit@(india, usa, other)",
+				"conditionalsplit@india sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['data.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> sinkindia",
+				"conditionalsplit@usa sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['data.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> sinkusa",
+				"conditionalsplit@other sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     partitionFileNames:['data.csv'],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> sinkother"
+			]
+		}
+	}
+}

@@ -1,0 +1,65 @@
+{
+	"name": "dataflow_S46",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "LS_S46_CSV",
+						"type": "DatasetReference"
+					},
+					"name": "source"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_BLOB_CSV_NO_FILE_NAME",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_BLOB_CSV_NO_FILE_NAME",
+						"type": "DatasetReference"
+					},
+					"name": "sink2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "PlayerEmailId"
+				},
+				{
+					"name": "aggregatedata"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Match as short,",
+				"          PlayerId as short,",
+				"          PlayerName as string,",
+				"          PlayerScore as short",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source",
+				"source derive(PlayerEmailId = concat(PlayerName,'@gmail.com')) ~> PlayerEmailId",
+				"PlayerEmailId aggregate(groupBy(PlayerName),",
+				"     TotalScore = sum(PlayerScore)) ~> aggregatedata",
+				"PlayerEmailId sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> sink1",
+				"aggregatedata sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> sink2"
+			]
+		}
+	}
+}

@@ -1,0 +1,116 @@
+{
+	"name": "DF_S49_RestartFromFailure",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_S49_Match1",
+						"type": "DatasetReference"
+					},
+					"name": "sourcematch1"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_S49_Match2",
+						"type": "DatasetReference"
+					},
+					"name": "sourcematch2"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_S49_Match3",
+						"type": "DatasetReference"
+					},
+					"name": "sourcematch3"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_S49_Series",
+						"type": "DatasetReference"
+					},
+					"name": "sourceseries"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_S49_Series",
+						"type": "DatasetReference"
+					},
+					"name": "sink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "union"
+				},
+				{
+					"name": "exists"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Match as integer,",
+				"          PlayerId as integer,",
+				"          PlayerName as string,",
+				"          PlayerScore as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> sourcematch1",
+				"source(output(",
+				"          Match as integer,",
+				"          PlayerId as integer,",
+				"          PlayerName as string,",
+				"          PlayerScore as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> sourcematch2",
+				"source(output(",
+				"          Match as integer,",
+				"          PlayerId as integer,",
+				"          PlayerName as string,",
+				"          PlayerScore as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> sourcematch3",
+				"source(output(",
+				"          Match as integer,",
+				"          PlayerId as integer,",
+				"          PlayerName as string,",
+				"          PlayerScore as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> sourceseries",
+				"sourcematch1, sourcematch2, sourcematch3 union(byName: true,",
+				"     partitionBy('hash', 1))~> union",
+				"union, sourceseries exists(equals(union@Match, sourceseries@Match) && equals(union@PlayerId, sourceseries@PlayerId) && equals(union@PlayerName, sourceseries@PlayerName) && equals(union@PlayerScore, sourceseries@PlayerScore),",
+				"     negate:true,",
+				"     broadcast: 'left')~> exists",
+				"exists sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Match as string,",
+				"          PlayerId as string,",
+				"          PlayerName as string,",
+				"          PlayerScore as string",
+				"     ),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> sink"
+			]
+		}
+	}
+}

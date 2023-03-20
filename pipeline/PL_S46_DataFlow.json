@@ -1,0 +1,42 @@
+{
+	"name": "PL_S46_DataFlow",
+	"properties": {
+		"activities": [
+			{
+				"name": "Data flow1",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "dataflow_S46",
+						"type": "DataFlowReference",
+						"datasetParameters": {
+							"sink1": {
+								"containername": "output1"
+							},
+							"sink2": {
+								"containername": "output2"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2023-03-14T21:02:45Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

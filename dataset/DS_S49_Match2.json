@@ -1,0 +1,41 @@
+{
+	"name": "DS_S49_Match2",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ADLSGen2",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "match2",
+				"fileSystem": "s49"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "Match",
+				"type": "String"
+			},
+			{
+				"name": "PlayerId",
+				"type": "String"
+			},
+			{
+				"name": "PlayerName",
+				"type": "String"
+			},
+			{
+				"name": "PlayerScore",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

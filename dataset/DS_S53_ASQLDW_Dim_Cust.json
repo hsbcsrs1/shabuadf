@@ -1,0 +1,45 @@
+{
+	"name": "DS_S53_ASQLDW_Dim_Cust",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Azure_SQL_DW",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Cust_Surr_Key",
+				"type": "varchar"
+			},
+			{
+				"name": "Cust_ID",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Cust_Name",
+				"type": "varchar"
+			},
+			{
+				"name": "Manager",
+				"type": "varchar"
+			},
+			{
+				"name": "City",
+				"type": "varchar"
+			},
+			{
+				"name": "Start_Date",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "S53_Dim_Cust"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

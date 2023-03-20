@@ -1,0 +1,78 @@
+{
+	"name": "DF_S52_SCD1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_S52_ADLSGen2_Customers_CSV",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_S52_ASDB_Dim_Cust",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Cust_ID as short,",
+				"          Cust_Name as string,",
+				"          Manager as string,",
+				"          City as string,",
+				"          Start_Date as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> source1",
+				"source1 derive(cust_surr_key = md5(concat(toString(Cust_ID),Cust_Name,Manager,City,toString(Start_Date)))) ~> derivedColumn1",
+				"derivedColumn1 alterRow(upsertIf(true())) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Cust_Surr_Key as string,",
+				"          Cust_ID as integer,",
+				"          Cust_Name as string,",
+				"          Manager as string,",
+				"          City as string,",
+				"          Start_Date as timestamp,",
+				"          Update_Date as timestamp",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:false,",
+				"     upsertable:true,",
+				"     keys:['Cust_ID'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          Cust_Surr_Key = cust_surr_key,",
+				"          Cust_ID,",
+				"          Cust_Name,",
+				"          Manager,",
+				"          City,",
+				"          Start_Date",
+				"     ),",
+				"     partitionBy('hash', 1)) ~> sink1"
+			]
+		}
+	}
+}

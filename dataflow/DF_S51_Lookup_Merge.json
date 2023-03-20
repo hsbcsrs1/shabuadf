@@ -1,0 +1,90 @@
+{
+	"name": "DF_S51_Lookup_Merge",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_S51_ASLS_Cust",
+						"type": "DatasetReference"
+					},
+					"name": "sourceCustomersCSV"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_S51_ASLS_Orders",
+						"type": "DatasetReference"
+					},
+					"name": "sourceOrdersCSV"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_S51_ASDB_Sink_CustOrders",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "lookup"
+				},
+				{
+					"name": "select1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          Cust_Id as short,",
+				"          Cust_Name as string,",
+				"          Cust_Score as short,",
+				"          Order_Id as short",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> sourceCustomersCSV",
+				"source(output(",
+				"          Order_Id as short,",
+				"          Order_Name as string,",
+				"          Order_Date as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false,",
+				"     partitionBy('hash', 1)) ~> sourceOrdersCSV",
+				"sourceCustomersCSV, sourceOrdersCSV lookup(sourceCustomersCSV@Order_Id == sourceOrdersCSV@Order_Id,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     partitionBy('hash', 1),",
+				"     broadcast: 'auto')~> lookup",
+				"lookup select(mapColumn(",
+				"          Cust_Id,",
+				"          Cust_Name,",
+				"          Cust_Score,",
+				"          Order_Id = sourceCustomersCSV@Order_Id,",
+				"          Order_Id = sourceOrdersCSV@Order_Id,",
+				"          Order_Name,",
+				"          Order_Date",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     recreate:true,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     partitionBy('hash', 1)) ~> sink1"
+			]
+		}
+	}
+}
