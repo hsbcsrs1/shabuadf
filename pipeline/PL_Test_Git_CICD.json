@@ -1,5 +1,5 @@
 {
-	"name": "pipeline_test_git",
+	"name": "PL_Test_Git_CICD",
 	"properties": {
 		"activities": [
 			{
