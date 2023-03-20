@@ -6770,7 +6770,7 @@
 							"source": {
 								"type": "DelimitedTextSource",
 								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
+									"type": "AzureBlobStorageReadSettings",
 									"recursive": true,
 									"enablePartitionDiscovery": false
 								},
@@ -6781,7 +6781,7 @@
 							"sink": {
 								"type": "DelimitedTextSink",
 								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings"
+									"type": "AzureBlobStorageWriteSettings"
 								},
 								"formatSettings": {
 									"type": "DelimitedTextWriteSettings",
@@ -6801,16 +6801,21 @@
 						},
 						"inputs": [
 							{
-								"referenceName": "DS_S52_ADLSGen2_Customers_CSV",
+								"referenceName": "DS_Blob_CSV",
 								"type": "DatasetReference",
-								"parameters": {}
+								"parameters": {
+									"ContainerName": "input",
+									"FileName": "cust.csv"
+								}
 							}
 						],
 						"outputs": [
 							{
-								"referenceName": "DS_S53_ADSLGen2_Customers_CSV",
+								"referenceName": "DS_BLOB_CSV_NO_FILE_NAME",
 								"type": "DatasetReference",
-								"parameters": {}
+								"parameters": {
+									"containername": "output"
+								}
 							}
 						]
 					}
@@ -6822,8 +6827,8 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_S52_ADLSGen2_Customers_CSV')]",
-				"[concat(variables('factoryId'), '/datasets/DS_S53_ADSLGen2_Customers_CSV')]"
+				"[concat(variables('factoryId'), '/datasets/DS_Blob_CSV')]",
+				"[concat(variables('factoryId'), '/datasets/DS_BLOB_CSV_NO_FILE_NAME')]"
 			]
 		}
 	]
