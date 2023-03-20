@@ -564,10 +564,11 @@
 						],
 						"outputs": [
 							{
-								"referenceName": "DS_BLOB_CSV_NO_FILE_NAME",
+								"referenceName": "DS_Blob_CSV",
 								"type": "DatasetReference",
 								"parameters": {
-									"containername": "output"
+									"ContainerName": "output",
+									"FileName": "output.csv"
 								}
 							}
 						]

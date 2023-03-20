@@ -6811,10 +6811,11 @@
 						],
 						"outputs": [
 							{
-								"referenceName": "DS_BLOB_CSV_NO_FILE_NAME",
+								"referenceName": "DS_Blob_CSV",
 								"type": "DatasetReference",
 								"parameters": {
-									"containername": "output"
+									"ContainerName": "output",
+									"FileName": "output.csv"
 								}
 							}
 						]
@@ -6827,8 +6828,7 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/DS_Blob_CSV')]",
-				"[concat(variables('factoryId'), '/datasets/DS_BLOB_CSV_NO_FILE_NAME')]"
+				"[concat(variables('factoryId'), '/datasets/DS_Blob_CSV')]"
 			]
 		}
 	]
