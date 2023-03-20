@@ -50,7 +50,7 @@
 						"referenceName": "DS_BLOB_CSV_NO_FILE_NAME",
 						"type": "DatasetReference",
 						"parameters": {
-							"containername": "input"
+							"containername": "inputdata"
 						}
 					}
 				],
@@ -59,7 +59,7 @@
 						"referenceName": "DS_Azure_SQL_DB",
 						"type": "DatasetReference",
 						"parameters": {
-							"SourceTableName": "emp1",
+							"SourceTableName": "emp",
 							"SourceTableSchema": "dbo"
 						}
 					}
