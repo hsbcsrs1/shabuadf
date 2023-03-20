@@ -3061,7 +3061,7 @@
 								"referenceName": "DS_Azure_SQL_DB",
 								"type": "DatasetReference",
 								"parameters": {
-									"SourceTableName": "cust2",
+									"SourceTableName": "emp",
 									"SourceTableSchema": "dbo"
 								}
 							}
