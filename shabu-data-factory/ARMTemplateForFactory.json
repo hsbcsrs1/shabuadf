@@ -6755,7 +6755,7 @@
 			"properties": {
 				"activities": [
 					{
-						"name": "Copy data1",
+						"name": "Copy data",
 						"type": "Copy",
 						"dependsOn": [],
 						"policy": {
@@ -6805,7 +6805,7 @@
 								"type": "DatasetReference",
 								"parameters": {
 									"ContainerName": "input",
-									"FileName": "cust.csv"
+									"FileName": "input.csv"
 								}
 							}
 						],
