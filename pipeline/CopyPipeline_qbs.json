@@ -1,0 +1,304 @@
+{
+	"name": "CopyPipeline_qbs",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach_qbs",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.cw_items",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Copy_qbs",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [
+								{
+									"name": "Source",
+									"value": "dbo.@{item().source.table}"
+								},
+								{
+									"name": "Destination",
+									"value": "sql-backup//@{item().destination.fileName}"
+								}
+							],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"partitionOption": "None"
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".txt"
+									}
+								},
+								"enableStaging": false,
+								"validateDataConsistency": false,
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "SourceDataset_qbs",
+									"type": "DatasetReference",
+									"parameters": {
+										"cw_table": "@item().source.table"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DestinationDataset_qbs",
+									"type": "DatasetReference",
+									"parameters": {
+										"cw_fileName": "@item().destination.fileName"
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"cw_items": {
+				"type": "Array",
+				"defaultValue": [
+					{
+						"source": {
+							"table": "AllCust"
+						},
+						"destination": {
+							"fileName": "dbo.AllCust.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "cust"
+						},
+						"destination": {
+							"fileName": "dbo.cust.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "cust1"
+						},
+						"destination": {
+							"fileName": "dbo.cust1.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "cust_incrLoad"
+						},
+						"destination": {
+							"fileName": "dbo.cust_incrLoad.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "dept"
+						},
+						"destination": {
+							"fileName": "dbo.dept.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "emp"
+						},
+						"destination": {
+							"fileName": "dbo.emp.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "emp1"
+						},
+						"destination": {
+							"fileName": "dbo.emp1.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "emp_incrLoad"
+						},
+						"destination": {
+							"fileName": "dbo.emp_incrLoad.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "emp_sink"
+						},
+						"destination": {
+							"fileName": "dbo.emp_sink.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "metadata"
+						},
+						"destination": {
+							"fileName": "dbo.metadata.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "metadata_incrLoad"
+						},
+						"destination": {
+							"fileName": "dbo.metadata_incrLoad.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "metadata_S25"
+						},
+						"destination": {
+							"fileName": "dbo.metadata_S25.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "orders_incrLoad"
+						},
+						"destination": {
+							"fileName": "dbo.orders_incrLoad.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "pipeline_log"
+						},
+						"destination": {
+							"fileName": "dbo.pipeline_log.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "product"
+						},
+						"destination": {
+							"fileName": "dbo.product.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "RejectRecords"
+						},
+						"destination": {
+							"fileName": "dbo.RejectRecords.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "S50_CreditScore"
+						},
+						"destination": {
+							"fileName": "dbo.S50_CreditScore.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "S50_CreditScore_Temp"
+						},
+						"destination": {
+							"fileName": "dbo.S50_CreditScore_Temp.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "S51_CustOrders"
+						},
+						"destination": {
+							"fileName": "dbo.S51_CustOrders.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "S52_Dim_Cust"
+						},
+						"destination": {
+							"fileName": "dbo.S52_Dim_Cust.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "S53_Dim_Cust"
+						},
+						"destination": {
+							"fileName": "dbo.S53_Dim_Cust.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "S54_Dim_Employee"
+						},
+						"destination": {
+							"fileName": "dbo.S54_Dim_Employee.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "S55_AllOrgs"
+						},
+						"destination": {
+							"fileName": "dbo.S55_AllOrgs.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "S55_Toppers"
+						},
+						"destination": {
+							"fileName": "dbo.S55_Toppers.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "Toppers"
+						},
+						"destination": {
+							"fileName": "dbo.Toppers.csv"
+						}
+					},
+					{
+						"source": {
+							"table": "watermark"
+						},
+						"destination": {
+							"fileName": "dbo.watermark.csv"
+						}
+					}
+				]
+			}
+		},
+		"annotations": []
+	}
+}
