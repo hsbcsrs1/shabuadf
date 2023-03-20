@@ -502,7 +502,7 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/pipeline_test_git')]",
+			"name": "[concat(parameters('factoryName'), '/PL_Test_Git_CICD')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
 			"properties": {
