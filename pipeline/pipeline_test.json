@@ -59,7 +59,7 @@
 						"referenceName": "DS_Azure_SQL_DB",
 						"type": "DatasetReference",
 						"parameters": {
-							"SourceTableName": "emp",
+							"SourceTableName": "emp1",
 							"SourceTableSchema": "dbo"
 						}
 					}
