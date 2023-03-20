@@ -18,7 +18,7 @@
 					"source": {
 						"type": "DelimitedTextSource",
 						"storeSettings": {
-							"type": "AzureBlobFSReadSettings",
+							"type": "AzureBlobStorageReadSettings",
 							"recursive": true,
 							"enablePartitionDiscovery": false
 						},
@@ -29,7 +29,7 @@
 					"sink": {
 						"type": "DelimitedTextSink",
 						"storeSettings": {
-							"type": "AzureBlobFSWriteSettings"
+							"type": "AzureBlobStorageWriteSettings"
 						},
 						"formatSettings": {
 							"type": "DelimitedTextWriteSettings",
@@ -49,13 +49,17 @@
 				},
 				"inputs": [
 					{
-						"referenceName": "DS_S52_ADLSGen2_Customers_CSV",
-						"type": "DatasetReference"
+						"referenceName": "DS_Blob_CSV",
+						"type": "DatasetReference",
+						"parameters": {
+							"ContainerName": "input",
+							"FileName": "cust.csv"
+						}
 					}
 				],
 				"outputs": [
 					{
-						"referenceName": "DS_S53_ADSLGen2_Customers_CSV",
+						"referenceName": "DS_BLOB_CSV_NO_FILE_NAME",
 						"type": "DatasetReference"
 					}
 				]
